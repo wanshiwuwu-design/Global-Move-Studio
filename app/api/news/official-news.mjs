@@ -192,11 +192,16 @@ function normalize(entry, source, now) {
   };
 }
 
-export function buildNewsResponse(snapshot, now = Date.now()) {
+/** @param {Snapshot} snapshot
+ * @param {number} [now]
+ * @param {Array<NonNullable<ReturnType<typeof normalize>> & {verified: boolean}>} [verified]
+ */
+export function buildNewsResponse(snapshot, now = Date.now(), verified = []) {
   const checks = snapshot.sources;
-  const merged = checks.flatMap((check) => check.stories)
+  const merged = [...verified, ...checks.flatMap((check) => check.stories)]
     .filter((story) => Date.parse(story.date) >= now - newsWindowDays * day)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.summary.length - a.summary.length);
+    .sort((a, b) => Number("verified" in b && b.verified) - Number("verified" in a && a.verified) ||
+      b.date.localeCompare(a.date) || b.summary.length - a.summary.length);
   const seen = new Set();
   const stories = merged.filter((story) => {
     if (seen.has(story.id)) return false;

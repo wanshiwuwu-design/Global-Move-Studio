@@ -1,0 +1,89 @@
+// List the policy change, affected applicants and implementation timing from the official text.
+// The bulletin month is represented separately from a publication date.
+/** @type {Array<{
+ * country: string, flag: string, region: "北美" | "欧洲" | "大洋洲" | "亚洲" | "拉丁美洲",
+ * topic: "永居" | "工作签" | "留学" | "家庭团聚" | "投资移民" | "排期" | "政策",
+ * title: string, summary: string, source: string, sourceUrl: string, date: string,
+ * dateKind: "published" | "issue",
+ * status: string, timing: string
+ * }>} */
+const notices = [
+  {
+    country: "新西兰", flag: "🇳🇿", region: "大洋洲", topic: "工作签",
+    title: "两类毕业生工签迁至新版在线系统",
+    summary: "申请毕业后工作签证或短期毕业生工作签证，通常须在学生签证到期后 3 个月内递交，博士生为 6 个月。持新西兰博士学位的印度籍毕业生，毕业后工作签证最长由 3 年延长至 4 年。",
+    source: "新西兰移民局 INZ",
+    sourceUrl: "https://www.immigration.govt.nz/about-us/news-centre/post-study-and-short-term-graduate-work-visas-now-on-enhanced-immigration-online/",
+    date: "2026-11-23", dateKind: "published", status: "已实施",
+    timing: "11 月 23 日切换系统，印度籍博士毕业生工签期限调整自 11 月 16 日生效",
+  },
+  {
+    country: "土耳其", flag: "🇹🇷", region: "欧洲", topic: "投资移民",
+    title: "投资 15 万或 20 万美元可申请 3 年或 5 年居留",
+    summary: "第 11994 号总统决定适用于在土耳其不工作的合资格外国投资者及其外籍配偶、未成年或受抚养子女。可选银行存款、政府债券、指定投资基金或个人养老金计划，投资须维持许可期限的一半。这是投资居留许可。",
+    source: "土耳其官方公报",
+    sourceUrl: "https://www.resmigazete.gov.tr/eskiler/2026/11/20261118-3.pdf",
+    date: "2026-11-18", dateKind: "published", status: "已生效",
+    timing: "2026 年 11 月 18 日刊登并生效",
+  },
+  {
+    country: "加拿大", flag: "🇨🇦", region: "北美", topic: "永居",
+    title: "快速通道更新加拿大研究人员的资格",
+    summary: "大学教授和讲师（NOC 41200）的合资格加拿大工作经历和聘用，可接受加拿大机构用津贴、研究资助或奖学金等支付。大专院校教学及研究助理（NOC 41201）的工作经历退出研究人员定向邀请类别。",
+    source: "加拿大移民部 IRCC",
+    sourceUrl: "https://www.canada.ca/en/immigration-refugees-citizenship/news/notices/express-entry-updates-top-researchers-continue-contributing-canada-innovation-ecosystem.html",
+    date: "2026-11-18", dateKind: "published", status: "已生效",
+    timing: "2026 年 11 月 17 日生效，11 月 18 日发布公告",
+  },
+  {
+    country: "澳大利亚", flag: "🇦🇺", region: "大洋洲", topic: "政策",
+    title: "技术移民 SkillSelect 将迁入 ImmiAccount",
+    summary: "适用于通过 SkillSelect 提交 EOI 或查看邀请的技术移民申请人。平台停用期间无法访问。已提交的 EOI 继续有效，尚未提交的草稿需在新平台重建。",
+    source: "澳大利亚内政部",
+    sourceUrl: "https://immi.homeaffairs.gov.au/visas/working-in-australia/skillselect/accessing-skillselect",
+    date: "2026-11-18", dateKind: "published", status: "已公告",
+    timing: "澳东夏令时 11 月 24 日 16:00 至 28 日 10:00 停用，28 日切换",
+  },
+  {
+    country: "澳大利亚", flag: "🇦🇺", region: "大洋洲", topic: "工作签",
+    title: "打工度假二签、三签改用登记和邀请",
+    summary: "417、462 类别二签和三签将增加登记与受邀要求，英国护照持有人豁免该流程。适用指定工作的二签申请人，工作要求由 88 天增至 120 天。符合条件者可在 2027 年 2 月 28 日前完成指定工作并依过渡安排直接递交。",
+    source: "澳大利亚内政部",
+    sourceUrl: "https://immi.homeaffairs.gov.au/news-media/archive/article?itemId=1464",
+    date: "2026-11-17", dateKind: "published", status: "已公告",
+    timing: "2026 年 12 月 1 日开放登记，2027 年 3 月 1 日实施新要求",
+  },
+  {
+    country: "英国", flag: "🇬🇧", region: "欧洲", topic: "永居",
+    title: "政府公布贡献型永居改革方案",
+    summary: "方案拟将许多移民路径的永居基准年限设为 10 年，并根据收入、职业和个人情况缩短或延长。符合过渡条件的部分护理工作者，年收入至少 25,000 英镑可保留 5 年路径。",
+    source: "英国内政部",
+    sourceUrl: "https://www.gov.uk/government/news/home-secretary-unveils-new-rules-for-migrants-settling-in-the-uk",
+    date: "2026-11-02", dateKind: "published", status: "政府方案",
+    timing: "生效日期待正式移民规则公布",
+  },
+  {
+    country: "美国", flag: "🇺🇸", region: "北美", topic: "排期",
+    title: "11 月职业移民排期 · 中国大陆出生申请人",
+    summary: "国务院表 A：EB-1 为 2023 年 8 月 1 日，EB-2 为 2021 年 10 月 1 日，EB-5 非预留为 2016 年 12 月 1 日；EB-5 乡村、高失业率、基建预留类别均为 Current。境内递交 I-485 另查 USCIS 当月选表。",
+    source: "美国国务院签证公告",
+    sourceUrl: "https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin/2027/visa-bulletin-for-november-2026.html",
+    date: "2026-11-01", dateKind: "issue", status: "已发布",
+    timing: "适用 2026 年 11 月",
+  },
+  {
+    country: "中国香港", flag: "🇭🇰", region: "亚洲", topic: "政策",
+    title: "合资格 APEC 商务旅行卡持有人免签逗留延至 90 天",
+    summary: "已取得香港预先审批的亚太经合组织商务旅行卡持有人，每次访港可免签逗留的上限由 60 天增至 90 天。",
+    source: "香港入境事务处",
+    sourceUrl: "https://www.immd.gov.hk/eng/press/press-releases/20261030a.html",
+    date: "2026-10-30", dateKind: "published", status: "已生效",
+    timing: "2026 年 11 月 1 日生效",
+  },
+];
+
+export const verifiedNews = notices.map((notice) => ({
+  ...notice,
+  id: notice.sourceUrl,
+  verified: true,
+}));

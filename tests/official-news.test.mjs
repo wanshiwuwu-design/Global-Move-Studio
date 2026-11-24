@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildNewsResponse, collectOfficialNews } from "../app/api/news/official-news.mjs";
 import { sources } from "../app/api/news/sources.mjs";
+import { verifiedNews } from "../app/api/news/verified-news.mjs";
 
 const now = Date.UTC(2026, 10, 24, 12);
 const source = (id) => sources.find((item) => item.id === id);
@@ -42,7 +43,7 @@ test("retains each source's last good articles and distinguishes failures from a
   const first = await collectOfficialNews({
     config: [hk], now, fetcher: mockFetch({
       [hk.url]: `<table><tr><td>2026年11月20日</td><td>
-        <a href="/hks/press/press-releases/20261120.html">人才入境计划申请更新</a>
+        <a href="/hks/press/press-releases/20261120a.html">人才入境计划申请更新</a>
         </td></tr></table>`,
     }),
   });
@@ -83,4 +84,22 @@ test("reads the actual New Zealand publication date from the linked announcement
   const story = buildNewsResponse(snapshot, now).stories[0];
   assert.equal(story.date, "2026-11-23");
   assert.match(story.summary, /Immigration Online/);
+});
+
+test("keeps the verified briefing usable on a source failure and takes precedence over the same raw link", () => {
+  const [verified] = verifiedNews;
+  const candidate = { ...verified, verified: false, summary: "Feed excerpt", date: "2026-11-24" };
+  const snapshot = {
+    checkedAt: new Date(now).toISOString(),
+    sources: [{
+      id: "nz-inz", country: verified.country, source: verified.source,
+      lastSuccess: null, error: true, stories: [candidate],
+    }],
+  };
+  const { stories, sources: checks } = buildNewsResponse(snapshot, now, verifiedNews);
+  assert.equal(stories.length, 8);
+  assert.deepEqual(stories[0], verified);
+  assert.equal(stories.filter((story) => story.id === candidate.id).length, 1);
+  assert.equal(checks[0].error, true);
+  assert.equal(stories.find((story) => story.country === "英国")?.status, "政府方案");
 });

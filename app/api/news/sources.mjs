@@ -52,7 +52,7 @@ export const sources = [
   {
     id: "hk-immd",
     country: "中国香港", flag: "🇭🇰", region: "亚洲", source: "香港入境事务处",
-    format: "list", path: /\/press\/press-releases\/\d{8}\.html$/,
+    format: "list", path: /\/press\/press-releases\/\d{8}[a-z]?\.html$/i,
     url: "https://www.immd.gov.hk/hks/press/press_releases.html",
   },
   {

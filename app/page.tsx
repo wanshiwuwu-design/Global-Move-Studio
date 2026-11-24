@@ -2,6 +2,7 @@
 
 import { toPng } from "html-to-image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { verifiedNews } from "./api/news/verified-news.mjs";
 
 type Region = "全球" | "北美" | "欧洲" | "大洋洲" | "亚洲" | "拉丁美洲";
 type Topic = "全部" | "永居" | "工作签" | "留学" | "家庭团聚" | "投资移民" | "排期" | "政策";
@@ -18,6 +19,9 @@ type Story = {
   sourceUrl: string;
   date: string;
   dateKind: "published" | "updated" | "issue";
+  verified?: boolean;
+  status?: string;
+  timing?: string;
   selected: boolean;
 };
 
@@ -50,7 +54,7 @@ const palettes = [
 function formatStoryDate(story: Story) {
   const [year, month, day] = story.date.split("-").map(Number);
   if (story.dateKind === "issue") return `${year} 年 ${month} 月刊`;
-  return `${month} 月 ${day} 日${story.dateKind === "updated" ? "更新" : ""}`;
+  return `${month} 月 ${day} 日${story.dateKind === "updated" ? "更新" : "公告"}`;
 }
 
 function formatCheckTime(value: string) {
@@ -93,10 +97,13 @@ function makeWhiteLogo(image: HTMLImageElement) {
 }
 
 export default function Home() {
-  const [stories, setStories] = useState<Story[]>([]);
+  const [stories, setStories] = useState<Story[]>(() =>
+    verifiedNews.map((story, index) => ({ ...story, selected: index < 3 })),
+  );
+  const [showCandidates, setShowCandidates] = useState(false);
   const [region, setRegion] = useState<Region>("全球");
   const [topic, setTopic] = useState<Topic>("全部");
-  const [activeId, setActiveId] = useState("");
+  const [activeId, setActiveId] = useState(verifiedNews[0]?.id ?? "");
   const [search, setSearch] = useState("");
   const [paletteIndex, setPaletteIndex] = useState(0);
   const [title, setTitle] = useState("全球移民周报");
@@ -108,7 +115,6 @@ export default function Home() {
   const [status, setStatus] = useState("正在读取官方资讯…");
   const [sourceChecks, setSourceChecks] = useState<SourceCheck[]>([]);
   const refreshingRef = useRef(false);
-  const loadedRef = useRef(false);
   const editsRef = useRef(new Map<string, Partial<Story>>());
   const [exporting, setExporting] = useState(false);
   const [whiteLogoSrc, setWhiteLogoSrc] = useState<string | null>(null);
@@ -122,14 +128,15 @@ export default function Home() {
     () =>
       stories.filter(
         (story) =>
+          (showCandidates ? !story.verified : story.verified) &&
           (region === "全球" || story.region === region) &&
           (topic === "全部" || story.topic === topic) &&
           (!search || [story.country, story.title, story.summary, story.source, story.topic]
             .some((value) => value.toLowerCase().includes(search))),
       ),
-    [stories, region, topic, search],
+    [stories, region, topic, search, showCandidates],
   );
-  const activeStory = stories.find((story) => story.id === activeId) ?? filteredStories[0];
+  const activeStory = filteredStories.find((story) => story.id === activeId) ?? filteredStories[0];
 
   useEffect(() => {
     let active = true;
@@ -163,22 +170,21 @@ export default function Home() {
         return;
       }
 
-      const firstLoad = !loadedRef.current && data.stories.length > 0;
-      if (firstLoad) loadedRef.current = true;
       setStories((current) => {
         const fresh = new Map(data.stories.map((story) => [story.id, story]));
         const selected = current.filter((story) => story.selected).map((story) => ({
           ...story, ...fresh.get(story.id), ...editsRef.current.get(story.id), selected: true,
         }));
         const selectedIds = new Set(selected.map((story) => story.id));
-        const rest = data.stories.filter((story) => !selectedIds.has(story.id)).map((story, i) => ({
-          ...story, ...editsRef.current.get(story.id), selected: firstLoad && i < 3,
+        const rest = data.stories.filter((story) => !selectedIds.has(story.id)).map((story) => ({
+          ...story, ...editsRef.current.get(story.id), selected: false,
         }));
         return [...selected, ...rest];
       });
 
       const checked = `最近检查 ${formatCheckTime(data.updatedAt)}`;
-      const count = data.stories.length ? `${data.stories.length} 条官方资讯` : "近期暂无符合条件的公告";
+      const verified = data.stories.filter((story) => story.verified).length;
+      const count = `${verified} 条已核验 · ${data.stories.length - verified} 条官方待核验`;
       setStatus(`${count} · ${checked}${failed ? ` · ${failed} 个来源暂不可用` : ""}`);
     } catch {
       setStatus("资讯服务暂不可用 · 请稍后刷新");
@@ -325,6 +331,15 @@ export default function Home() {
           </label>
 
           <div className="filter-block">
+            <div className="chips" role="group" aria-label="资讯核验状态">
+              <button className={!showCandidates ? "active" : ""} aria-pressed={!showCandidates}
+                onClick={() => setShowCandidates(false)}>已核验政策</button>
+              <button className={showCandidates ? "active" : ""} aria-pressed={showCandidates}
+                onClick={() => setShowCandidates(true)}>官方待核验</button>
+            </div>
+          </div>
+
+          <div className="filter-block">
             <span className="field-label">地区</span>
             <div className="chips">
               {regions.map((item) => (
@@ -354,7 +369,7 @@ export default function Home() {
           </div>
 
           <div className="story-list-heading">
-            <span>候选资讯</span>
+            <span>{showCandidates ? "官方待核验" : "已核验政策"}</span>
             <small>已选 {selectedStories.length}/{MAX_SELECTED_STORIES}</small>
           </div>
           <div className="story-list">
@@ -387,7 +402,7 @@ export default function Home() {
                     <time>{formatStoryDate(story)}</time>
                   </div>
                   <h3>{story.title}</h3>
-                  <p>{story.source}</p>
+                  <p>{story.source}{story.status ? ` · ${story.status}` : ""}</p>
                 </div>
               </article>
             ))}
@@ -470,6 +485,9 @@ export default function Home() {
                       <span>来源 · {story.source}</span>
                       <a href={story.sourceUrl} target="_blank" rel="noreferrer">查看原文 ↗</a>
                     </div>
+                    <div className="source-line">
+                      <span>{story.timing ? `${story.status} · ${story.timing}` : "官方原文待核验"}</span>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -520,6 +538,8 @@ export default function Home() {
                 <h3>当前资讯</h3>
                 <span>{activeStory.flag} {activeStory.country}</span>
               </div>
+              {activeStory.timing && <p>{activeStory.status} · {activeStory.timing}</p>}
+              <p><a href={activeStory.sourceUrl} target="_blank" rel="noreferrer">查看官方原文 ↗</a></p>
               <label>
                 <span>标题</span>
                 <textarea

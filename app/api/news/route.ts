@@ -1,4 +1,5 @@
 import { buildNewsResponse, collectOfficialNews } from "./official-news.mjs";
+import { verifiedNews } from "./verified-news.mjs";
 
 const snapshotUrl = "https://raw.githubusercontent.com/wanshiwuwu-design/Global-Move-Studio/immigration-news/news.json";
 const refreshMs = 15 * 60 * 1000;
@@ -35,7 +36,7 @@ export async function GET() {
   }
   const snapshot = (await pending) ?? cached;
   if (!snapshot) return new Response(null, { status: 503 });
-  const result = buildNewsResponse(snapshot);
+  const result = buildNewsResponse(snapshot, Date.now(), verifiedNews);
   const usable = result.stories.length > 0 || snapshot.sources.some((source) => !source.error);
   return Response.json(result, {
     status: usable ? 200 : 503,
