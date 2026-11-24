@@ -3,8 +3,8 @@
 import { toPng } from "html-to-image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type Region = "全球" | "北美" | "欧洲" | "大洋洲" | "亚洲";
-type Topic = "全部" | "永居" | "工作签" | "留学" | "家庭团聚" | "政策";
+type Region = "全球" | "北美" | "欧洲" | "大洋洲" | "亚洲" | "拉丁美洲";
+type Topic = "全部" | "永居" | "工作签" | "留学" | "家庭团聚" | "投资移民" | "排期" | "政策";
 
 type Story = {
   id: string;
@@ -17,89 +17,27 @@ type Story = {
   source: string;
   sourceUrl: string;
   date: string;
+  dateKind: "published" | "updated" | "issue";
   selected: boolean;
 };
 
-const fallbackStories: Story[] = [
-  {
-    id: "ca-pgp",
-    country: "加拿大",
-    flag: "🇨🇦",
-    region: "北美",
-    topic: "家庭团聚",
-    title: "加拿大暂停父母及祖父母团聚项目新申请",
-    summary:
-      "加拿大移民部宣布暂停接收父母及祖父母团聚项目的新申请，现有申请继续处理，2026 年计划通过该项目批准最多 15,000 人获得永久居民身份。超级签证仍可用于长期探亲。",
-    source: "加拿大移民部 IRCC",
-    sourceUrl:
-      "https://www.canada.ca/en/immigration-refugees-citizenship/news/notices/responsibly-manage-parent-grandparent-program.html",
-    date: "2026-07-15",
-    selected: true,
-  },
-  {
-    id: "nz-student",
-    country: "新西兰",
-    flag: "🇳🇿",
-    region: "大洋洲",
-    topic: "留学",
-    title: "新西兰放宽 Pathway Student Visa 学习路径",
-    summary:
-      "新规扩大低等级课程衔接范围，并把部分申请人的英语学习时间上限由 20 周延长至 30 周。调整已于 7 月 20 日生效，为国际学生提供更灵活的升学安排。",
-    source: "新西兰移民局 INZ",
-    sourceUrl:
-      "https://www.immigration.govt.nz/about-us/news-centre/improvements-to-the-pathway-student-visa/",
-    date: "2026-07-20",
-    selected: true,
-  },
-  {
-    id: "uk-rules",
-    country: "英国",
-    flag: "🇬🇧",
-    region: "欧洲",
-    topic: "政策",
-    title: "英国发布新一轮移民规则变更说明",
-    summary:
-      "英国内政部发布 7 月移民规则变更文件，涵盖多项签证与居留规则的调整。准备递交申请的人应核对新旧规则的生效日期与过渡安排。",
-    source: "英国内政部 Home Office",
-    sourceUrl:
-      "https://www.gov.uk/government/publications/statement-of-changes-to-the-immigration-rules-hc-259-9-july-2026",
-    date: "2026-07-09",
-    selected: true,
-  },
-  {
-    id: "nz-skilled",
-    country: "新西兰",
-    flag: "🇳🇿",
-    region: "大洋洲",
-    topic: "永居",
-    title: "新西兰技术移民与工作转居留细则即将调整",
-    summary:
-      "技术移民类别将简化工资门槛规则、更新学历证明要求，并调整技工与技术员路径。主要变化计划自 8 月 24 日起实施。",
-    source: "新西兰移民局 INZ",
-    sourceUrl:
-      "https://www.immigration.govt.nz/about-us/news-centre/final-details-about-changes-to-the-skilled-migrant-category-resident-visa-and-work-to-residence-visa/",
-    date: "2026-06-18",
-    selected: false,
-  },
-  {
-    id: "au-program",
-    country: "澳大利亚",
-    flag: "🇦🇺",
-    region: "大洋洲",
-    topic: "政策",
-    title: "澳大利亚持续推进移民项目精简与数字化",
-    summary:
-      "澳大利亚最新项目管理文件继续强调技术移民、区域发展与签证系统数字化。申请人应以移民局公布的职业清单、州担保名额和邀请轮次为准。",
-    source: "澳大利亚内政部",
-    sourceUrl:
-      "https://immi.homeaffairs.gov.au/what-we-do/migration-program-planning-levels",
-    date: "2026-06-30",
-    selected: false,
-  },
-];
+type SourceCheck = {
+  id: string;
+  country: string;
+  source: string;
+  error: boolean;
+  lastSuccess: string | null;
+};
 
-const regions: Region[] = ["全球", "北美", "欧洲", "大洋洲", "亚洲"];
-const topics: Topic[] = ["全部", "永居", "工作签", "留学", "家庭团聚", "政策"];
+type NewsResponse = {
+  stories: Omit<Story, "selected">[];
+  updatedAt: string;
+  lastSuccess: string | null;
+  sources: SourceCheck[];
+};
+
+const regions: Region[] = ["全球", "北美", "欧洲", "大洋洲", "亚洲", "拉丁美洲"];
+const topics: Topic[] = ["全部", "永居", "工作签", "留学", "家庭团聚", "投资移民", "排期", "政策"];
 const MAX_SELECTED_STORIES = 8;
 const palettes = [
   { name: "高达绿", primary: "#1E5552", accent: "#C99B52", soft: "#EAF2EF" },
@@ -109,9 +47,17 @@ const palettes = [
   { name: "炭黑红", primary: "#242424", accent: "#C83E3E", soft: "#F3F0EC" },
 ];
 
-function formatChineseDate(value: string) {
-  const date = new Date(`${value}T00:00:00`);
-  return `${date.getMonth() + 1} 月 ${date.getDate()} 日`;
+function formatStoryDate(story: Story) {
+  const [year, month, day] = story.date.split("-").map(Number);
+  if (story.dateKind === "issue") return `${year} 年 ${month} 月刊`;
+  return `${month} 月 ${day} 日${story.dateKind === "updated" ? "更新" : ""}`;
+}
+
+function formatCheckTime(value: string) {
+  return new Date(value).toLocaleString("zh-CN", {
+    timeZone: "Asia/Shanghai", month: "numeric", day: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
 }
 
 function loadImage(src: string) {
@@ -147,10 +93,11 @@ function makeWhiteLogo(image: HTMLImageElement) {
 }
 
 export default function Home() {
-  const [stories, setStories] = useState<Story[]>(fallbackStories);
+  const [stories, setStories] = useState<Story[]>([]);
   const [region, setRegion] = useState<Region>("全球");
   const [topic, setTopic] = useState<Topic>("全部");
-  const [activeId, setActiveId] = useState(fallbackStories[0].id);
+  const [activeId, setActiveId] = useState("");
+  const [search, setSearch] = useState("");
   const [paletteIndex, setPaletteIndex] = useState(0);
   const [title, setTitle] = useState("全球移民周报");
   const [subtitle, setSubtitle] = useState("本周政策、签证与机会，一张图看懂");
@@ -158,7 +105,11 @@ export default function Home() {
   const [issue, setIssue] = useState("VOL. 028");
   const [fontScale, setFontScale] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
-  const [status, setStatus] = useState("打开时自动更新 · 官方来源优先");
+  const [status, setStatus] = useState("正在读取官方资讯…");
+  const [sourceChecks, setSourceChecks] = useState<SourceCheck[]>([]);
+  const refreshingRef = useRef(false);
+  const loadedRef = useRef(false);
+  const editsRef = useRef(new Map<string, Partial<Story>>());
   const [exporting, setExporting] = useState(false);
   const [whiteLogoSrc, setWhiteLogoSrc] = useState<string | null>(null);
   const posterRef = useRef<HTMLDivElement>(null);
@@ -172,11 +123,13 @@ export default function Home() {
       stories.filter(
         (story) =>
           (region === "全球" || story.region === region) &&
-          (topic === "全部" || story.topic === topic),
+          (topic === "全部" || story.topic === topic) &&
+          (!search || [story.country, story.title, story.summary, story.source, story.topic]
+            .some((value) => value.toLowerCase().includes(search))),
       ),
-    [stories, region, topic],
+    [stories, region, topic, search],
   );
-  const activeStory = stories.find((story) => story.id === activeId);
+  const activeStory = stories.find((story) => story.id === activeId) ?? filteredStories[0];
 
   useEffect(() => {
     let active = true;
@@ -193,42 +146,58 @@ export default function Home() {
   }, []);
 
   async function refreshNews(manual = false) {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     setRefreshing(true);
-    if (manual) setStatus("正在扫描全球移民资讯…");
+    if (manual) setStatus("正在读取官方资讯…");
     try {
       const response = await fetch("/api/news", { cache: "no-store" });
-      if (!response.ok) throw new Error("news unavailable");
-      const data = (await response.json()) as { stories?: Story[]; updatedAt?: string };
-      if (data.stories?.length) {
-        setStories((current) => {
-          const selectedIds = new Set(
-            current.filter((item) => item.selected).map((item) => item.id),
-          );
-          const fresh = data.stories!.map((item, index) => ({
-            ...item,
-            selected: selectedIds.has(item.id) || index < 3,
-          }));
-          return fresh;
-        });
-        const time = new Date(data.updatedAt || Date.now()).toLocaleTimeString("zh-CN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        setStatus(`已更新 ${data.stories.length} 条 · ${time}`);
+      if (!response.ok && response.status !== 503) throw new Error("news unavailable");
+      const data = (await response.json()) as NewsResponse;
+      const failed = data.sources.filter((source) => source.error).length;
+      setSourceChecks(data.sources);
+      if (!response.ok) {
+        setStatus(data.lastSuccess
+          ? `所有来源暂时不可用 · 上次成功 ${formatCheckTime(data.lastSuccess)}`
+          : "所有来源暂时不可用 · 请稍后刷新");
+        return;
       }
+
+      const firstLoad = !loadedRef.current && data.stories.length > 0;
+      if (firstLoad) loadedRef.current = true;
+      setStories((current) => {
+        const fresh = new Map(data.stories.map((story) => [story.id, story]));
+        const selected = current.filter((story) => story.selected).map((story) => ({
+          ...story, ...fresh.get(story.id), ...editsRef.current.get(story.id), selected: true,
+        }));
+        const selectedIds = new Set(selected.map((story) => story.id));
+        const rest = data.stories.filter((story) => !selectedIds.has(story.id)).map((story, i) => ({
+          ...story, ...editsRef.current.get(story.id), selected: firstLoad && i < 3,
+        }));
+        return [...selected, ...rest];
+      });
+
+      const checked = `最近检查 ${formatCheckTime(data.updatedAt)}`;
+      const count = data.stories.length ? `${data.stories.length} 条官方资讯` : "近期暂无符合条件的公告";
+      setStatus(`${count} · ${checked}${failed ? ` · ${failed} 个来源暂不可用` : ""}`);
     } catch {
-      setStatus("已载入最新编辑样例 · 可手动刷新");
+      setStatus("资讯服务暂不可用 · 请稍后刷新");
     } finally {
+      refreshingRef.current = false;
       setRefreshing(false);
     }
   }
 
   useEffect(() => {
-    const timer = window.setTimeout(() => refreshNews(false), 600);
-    return () => window.clearTimeout(timer);
+    void refreshNews();
+    const timer = window.setInterval(() => {
+      if (!document.hidden) void refreshNews();
+    }, 5 * 60_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   function updateStory(id: string, patch: Partial<Story>) {
+    editsRef.current.set(id, { ...editsRef.current.get(id), ...patch });
     setStories((items) =>
       items.map((item) => (item.id === id ? { ...item, ...patch } : item)),
     );
@@ -332,22 +301,26 @@ export default function Home() {
               ↻
             </button>
           </div>
-          <p className="update-state"><span>●</span>{status}</p>
+          <p className="update-state" role="status"><span>●</span>{status}</p>
+          {sourceChecks.length > 0 && (
+            <details className="source-checks">
+              <summary>官方来源状态</summary>
+              <ul>
+                {sourceChecks.map((check) => (
+                  <li key={check.id}>
+                    {check.source} · {check.error ? "暂不可用" : "可用"}
+                    {check.lastSuccess ? ` · 上次成功 ${formatCheckTime(check.lastSuccess)}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
 
           <label className="searchbox">
             <span>⌕</span>
             <input
               placeholder="搜索国家、签证或政策"
-              onChange={(event) => {
-                const value = event.target.value.trim().toLowerCase();
-                if (!value) return setRegion("全球");
-                const found = stories.find(
-                  (item) =>
-                    item.title.toLowerCase().includes(value) ||
-                    item.country.toLowerCase().includes(value),
-                );
-                if (found) setActiveId(found.id);
-              }}
+              onChange={(event) => setSearch(event.target.value.trim().toLowerCase())}
             />
           </label>
 
@@ -385,6 +358,9 @@ export default function Home() {
             <small>已选 {selectedStories.length}/{MAX_SELECTED_STORIES}</small>
           </div>
           <div className="story-list">
+            {filteredStories.length === 0 && !refreshing && (
+              <p className="update-state">{stories.length ? "没有符合当前筛选的资讯。" : "暂无可显示的官方资讯。"}</p>
+            )}
             {filteredStories.map((story) => (
               <article
                 key={story.id}
@@ -408,7 +384,7 @@ export default function Home() {
                 <div className="story-copy">
                   <div className="story-meta">
                     <span>{story.flag} {story.country}</span>
-                    <time>{formatChineseDate(story.date)}</time>
+                    <time>{formatStoryDate(story)}</time>
                   </div>
                   <h3>{story.title}</h3>
                   <p>{story.source}</p>
@@ -474,7 +450,7 @@ export default function Home() {
                         <i />
                         <span>{story.topic}</span>
                       </div>
-                      <time>{formatChineseDate(story.date)}</time>
+                      <time>{formatStoryDate(story)}</time>
                     </div>
                     <h2
                       contentEditable
@@ -610,7 +586,7 @@ export default function Home() {
 
           <div className="source-note">
             <span>✓</span>
-            <p><strong>可信来源策略</strong>优先聚合各国移民主管部门、政府公报与主流媒体；每条资讯保留原文入口。</p>
+            <p><strong>可信来源策略</strong>聚合已接入的移民主管部门和政府公报。每条资讯保留官方原文，标题和摘要可在发布海报前编辑。</p>
           </div>
         </aside>
       </section>

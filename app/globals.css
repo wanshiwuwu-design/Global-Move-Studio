@@ -970,3 +970,22 @@ button:not(:disabled) {
     filter: none;
   }
 }
+
+.source-checks {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  color: #455b58;
+}
+
+.source-checks summary {
+  cursor: pointer;
+}
+
+.source-checks ul {
+  margin: 0.5rem 0 0;
+  padding-inline-start: 1.2rem;
+}
+
+.source-checks li + li {
+  margin-top: 0.25rem;
+}

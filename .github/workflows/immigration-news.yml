@@ -1,0 +1,45 @@
+name: Update official immigration news
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: immigration-news-snapshot
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Collect and publish source snapshots
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          repo="$RUNNER_TEMP/immigration-news"
+          branch="immigration-news"
+          git worktree add --detach "$repo"
+          if git ls-remote --exit-code --heads origin "refs/heads/$branch"; then
+            git fetch --no-tags origin "refs/heads/$branch"
+            git -C "$repo" checkout --detach FETCH_HEAD
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then exit "$status"; fi
+            git -C "$repo" checkout --orphan "$branch"
+            git -C "$repo" rm -rf --ignore-unmatch .
+          fi
+          result=0
+          node scripts/refresh-news.mjs "$repo/news.json" || result=$?
+          git -C "$repo" add news.json
+          if ! git -C "$repo" diff --cached --quiet; then
+            git -C "$repo" commit -m "Refresh official immigration news"
+            git -C "$repo" push origin "HEAD:refs/heads/$branch"
+          fi
+          exit "$result"
