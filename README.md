@@ -6,8 +6,6 @@
 
 ### [立即打开 Global Move Studio →](https://global-move-poster-studio.garfield-wu.chatgpt.site)
 
-> 预览站点使用私有访问模式，打开后可能需要登录 ChatGPT。
-
 ![Global Move Studio](public/og.png)
 
 ## 功能
@@ -54,7 +52,7 @@ pnpm build
 ## 资讯更新
 
 - 素材库默认展示已核验的简体中文政策摘要，标注公告日期、实施时间、政策状态及适用人群。美国签证公告使用对应期号月份。
-- 自动采集的官方公告在「官方待核验」中查看，供核对原文；这些公告不会自动加入海报。经核验的内容维护在 `app/api/news/verified-news.mjs`，同一原文链接优先保留已核验版本。
-- 默认分支的 GitHub Actions 计划每 15 分钟检查，实际运行时间以 Actions 为准。它把资讯和检查状态保存到 `immigration-news` 分支的 `news.json`。部署后可在 Actions 手动运行一次填充首个快照。
+- 自动采集的官方公告在「官方待核验」中查看，供核对原文。经核验的内容维护在 `app/api/news/verified-news.mjs`，同一原文链接优先保留已核验版本。
+- 默认分支的 GitHub Actions 在资讯代码推送后运行，并计划每 15 分钟检查，实际运行时间以 Actions 为准。它把公告、已核验内容及检查状态保存到 `immigration-news` 分支的 `news.json`。网站读取该文件，更新已核验内容无需重新部署网站。
 - 页面打开时读取快照，打开期间每 5 分钟重新读取。快照超过 15 分钟时，站点按需检查官方来源。单个来源失败时保留它的近期记录并标记状态。官方源缺少摘要时，保留原文链接供编辑查阅。
 - 新增目的地可在 `app/api/news/sources.mjs` 配置官方入口。覆盖范围取决于接入来源能在线发布和提供哪些公告。

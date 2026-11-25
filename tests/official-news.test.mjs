@@ -4,7 +4,7 @@ import { buildNewsResponse, collectOfficialNews } from "../app/api/news/official
 import { sources } from "../app/api/news/sources.mjs";
 import { verifiedNews } from "../app/api/news/verified-news.mjs";
 
-const now = Date.UTC(2026, 10, 24, 12);
+const now = Date.UTC(2026, 10, 25, 12);
 const source = (id) => sources.find((item) => item.id === id);
 const mockFetch = (responses) => async (url) => new Response(responses[url], {
   status: Object.hasOwn(responses, url) ? 200 : 503,
@@ -97,9 +97,19 @@ test("keeps the verified briefing usable on a source failure and takes precedenc
     }],
   };
   const { stories, sources: checks } = buildNewsResponse(snapshot, now, verifiedNews);
-  assert.equal(stories.length, 8);
+  assert.equal(stories.length, verifiedNews.length);
   assert.deepEqual(stories[0], verified);
   assert.equal(stories.filter((story) => story.id === candidate.id).length, 1);
   assert.equal(checks[0].error, true);
   assert.equal(stories.find((story) => story.country === "英国")?.status, "政府方案");
+});
+
+test("takes new and corrected verified stories from the repository snapshot", async () => {
+  const [first, ...rest] = verifiedNews;
+  const corrected = { ...first, summary: "Corrected official summary" };
+  const previous = { checkedAt: new Date(now - 60000).toISOString(), sources: [], verified: [corrected, ...rest] };
+  const refreshed = await collectOfficialNews({ previous, now, config: [] });
+  const { stories } = buildNewsResponse(refreshed, now, [first]);
+  assert.equal(stories.length, verifiedNews.length);
+  assert.deepEqual(stories[0], corrected);
 });

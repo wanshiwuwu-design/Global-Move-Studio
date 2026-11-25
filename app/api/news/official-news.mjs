@@ -1,5 +1,7 @@
 import { sources } from "./sources.mjs";
 
+/** @typedef {(typeof import("./verified-news.mjs").verifiedNews)[number]} VerifiedStory */
+
 const newsWindowDays = 120;
 const day = 86_400_000;
 const maxPerSource = 20;
@@ -194,11 +196,12 @@ function normalize(entry, source, now) {
 
 /** @param {Snapshot} snapshot
  * @param {number} [now]
- * @param {Array<NonNullable<ReturnType<typeof normalize>> & {verified: boolean}>} [verified]
+ * @param {VerifiedStory[]} [verified]
  */
 export function buildNewsResponse(snapshot, now = Date.now(), verified = []) {
   const checks = snapshot.sources;
-  const merged = [...verified, ...checks.flatMap((check) => check.stories)]
+  const approved = new Map([...verified, ...(snapshot.verified ?? [])].map((story) => [story.id, story]));
+  const merged = [...approved.values(), ...checks.flatMap((check) => check.stories)]
     .filter((story) => Date.parse(story.date) >= now - newsWindowDays * day)
     .sort((a, b) => Number("verified" in b && b.verified) - Number("verified" in a && a.verified) ||
       b.date.localeCompare(a.date) || b.summary.length - a.summary.length);
@@ -225,7 +228,7 @@ export function buildNewsResponse(snapshot, now = Date.now(), verified = []) {
  *   stories: NonNullable<ReturnType<typeof normalize>>[],
  * }} SourceResult
  *
- * @typedef {{ checkedAt: string, sources: SourceResult[] }} Snapshot
+ * @typedef {{ checkedAt: string, sources: SourceResult[], verified?: VerifiedStory[] }} Snapshot
  */
 
 /**
@@ -262,5 +265,5 @@ export async function collectOfficialNews({ fetcher = fetch, previous, now = Dat
       return { ...info, lastSuccess: old?.lastSuccess ?? null, error: true, stories: old?.stories ?? [] };
     }
   }));
-  return { checkedAt, sources };
+  return { checkedAt, sources, verified: previous?.verified };
 }

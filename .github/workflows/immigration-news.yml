@@ -1,6 +1,12 @@
 name: Update official immigration news
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/immigration-news.yml
+      - app/api/news/**
+      - scripts/refresh-news.mjs
   schedule:
     - cron: "7,22,37,52 * * * *"
   workflow_dispatch:

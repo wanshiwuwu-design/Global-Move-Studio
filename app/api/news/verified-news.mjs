@@ -9,6 +9,24 @@
  * }>} */
 const notices = [
   {
+    country: "澳大利亚", flag: "🇦🇺", region: "大洋洲", topic: "工作签",
+    title: "中国护照持有人的五类建筑技工职业评估改走 OSAP",
+    summary: "持中国护照的瓦工（331111）、橱柜制作工（394111）、木工（331212）、木工兼细木工（331211）和细木工（331213）须改走海外技能评估计划（OSAP）。部分其他国家护照持有人的一级焊工也受影响。12 月 1 日前递交的 MSA 申请按递交时的要求评估。",
+    source: "澳大利亚技工认证局 TRA",
+    sourceUrl: "https://www.tradesrecognitionaustralia.gov.au/news/changes-migration-skills-assessment-arrangements-selected-construction-occupations-1-december",
+    date: "2026-11-25", dateKind: "published", status: "已公告",
+    timing: "2026 年 12 月 1 日起实施",
+  },
+  {
+    country: "加拿大", flag: "🇨🇦", region: "北美", topic: "永居",
+    title: "快速通道第 454 轮邀请 1,999 名省提名候选人",
+    summary: "本轮面向进入快速通道池且获得省提名的候选人，最低 CRS 为 673 分。同分时以 2026 年 7 月 31 日 03:50:44 UTC 为建档时间分界。",
+    source: "加拿大移民部 IRCC",
+    sourceUrl: "https://www.canada.ca/en/immigration-refugees-citizenship/corporate/mandate/policies-operational-instructions-agreements/ministerial-instructions/express-entry-rounds/invitations.html?q=454",
+    date: "2026-11-23", dateKind: "published", status: "已发出邀请",
+    timing: "2026 年 11 月 23 日发出邀请",
+  },
+  {
     country: "新西兰", flag: "🇳🇿", region: "大洋洲", topic: "工作签",
     title: "两类毕业生工签迁至新版在线系统",
     summary: "申请毕业后工作签证或短期毕业生工作签证，通常须在学生签证到期后 3 个月内递交，博士生为 6 个月。持新西兰博士学位的印度籍毕业生，毕业后工作签证最长由 3 年延长至 4 年。",
